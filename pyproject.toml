@@ -1,0 +1,57 @@
+# How to Add New Packages
+# To add new packages to your Poetry project:
+
+# Add a dependency:
+
+# This adds the package to [tool.poetry.dependencies] in pyproject.toml and updates poetry.lock.
+
+# Add a development dependency (for testing, linting, etc.):
+
+# This adds it to [tool.poetry.group.dev.dependencies].
+
+# Add with version constraints:
+
+# Install all dependencies (after adding):
+
+# For example, if you wanted to add a package like pydantic for data validation:
+
+# This will update both pyproject.toml and poetry.lock automatically. Always run poetry install after adding packages to ensure they're installed in your virtual environment.
+
+
+
+[tool.poetry]
+name = "ai_pulse_backend"
+version = "0.1.0"
+description = "AI Pulse Backend - Unified pipeline for fetching, scraping, and vectorizing AI news"
+package-mode = true
+packages = [{include = "app"}]
+authors = ["TeamC"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.0"
+uvicorn = {extras = ["standard"], version = "^0.30.0"}
+requests = "^2.32.5"
+pyhumps = "3.8.0"
+gunicorn = "^21.2.0"
+python-dotenv = "^1.0.0"
+httpx = "^0.27.0"
+qdrant-client = "^1.16.2"
+pymongo = "^4.6.1"
+openai = "^1.13.3"
+certifi = "^2026.1.4"
+azure-identity = "^1.25.1"
+azure-keyvault-secrets = "^4.10.0"
+greenlet = "^3.3.1"
+playwright = "^1.58.0"
+langchain = "^1.2.10"
+langchain-openai = "^1.1.9"
+azure-cosmos = "^4.14.6"
+aiohttp = "^3.13.3"
+
+[tool.poetry.scripts]
+api = "app.server:start"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
