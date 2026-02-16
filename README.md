@@ -75,7 +75,7 @@ Notes
 
 - Configuration: review `config.ini` and `app/config.py` for required environment variables and service endpoints (Qdrant, CosmosDB, LLM provider keys).
 - Qdrant (local): this project defaults to a locally hosted Qdrant instance (see `config.ini` — `qdrant.url = http://localhost:6333`). If you prefer Qdrant Cloud, update `qdrant.url` and set `qdrant.api_key` accordingly.
-- Image generation: image generation is implemented in `app/services/Image_generator.py`. It calls an image API using either `NORA_API_URL`/`NORA_API_KEY` or the Azure OpenAI vars (`AZURE_OPENAI_ENDPOINT`/`AZURE_OPENAI_KEY`). The module exposes a POST `/generate-image` handler and a `process_scraper_results()` helper that:
+- Image generation: image generation is implemented in `app/services/image_generator.py`. It calls an image API using either `NORA_API_URL`/`NORA_API_KEY` or the Azure OpenAI vars (`AZURE_OPENAI_ENDPOINT`/`AZURE_OPENAI_KEY`). The module exposes a POST `/generate-image` handler and a `process_scraper_results()` helper that:
   - saves generated images to `app/files/images/responses/`,
   - returns both `image_url` (remote) and `local_image_path` (saved copy), and
   - throttles calls in batches (it waits ~1 minute every 3 calls to avoid rate limits).

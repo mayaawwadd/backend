@@ -11,8 +11,8 @@ from app.services.web_scraper import WebScraper
 from app.services.vector_service import QdrantVectorDBClient
 from app.services.summarization import summarize_articles
 
-from app.services.Image_generator import (
-    to_safe_concept_prompt,
+from app.services.image_generator import (
+    build_safe_editorial_prompt,
     call_image_api,
     extract_image_url,
     save_image_from_url,
@@ -125,7 +125,7 @@ class PipelineService:
                     article["local_image_path"] = ""
                     continue
 
-                curated_prompt = to_safe_concept_prompt(title)
+                curated_prompt = build_safe_editorial_prompt(article)
 
                 raw = await asyncio.to_thread(
                     call_image_api,
@@ -148,6 +148,8 @@ class PipelineService:
                     article["local_image_path"] = ""
 
                 processed += 1
+
+                await asyncio.sleep(20)
 
             except Exception as e:
                 logger.warning(

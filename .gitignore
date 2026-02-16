@@ -175,3 +175,5 @@ app/files/*
 app/Files/*app/files/scraper_results/
 app/files/images/responses/
 .vscode/
+
+qdrant_storage/*
