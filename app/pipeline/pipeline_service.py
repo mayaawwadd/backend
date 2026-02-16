@@ -1,14 +1,15 @@
 import logging
 from typing import List, Dict, Any
+import asyncio
+import uuid
+import json
+import os
 
 from app.services.google_news_fetcher import GoogleNewsFetcher
 from app.services.article_scraper import ScraperConfig
 from app.services.web_scraper import WebScraper
 from app.services.vector_service import QdrantVectorDBClient
-
 from app.services.summarization import summarize_articles
-from qdrant_client import QdrantClient
-from app.config import settings
 
 from app.services.Image_generator import (
     to_safe_concept_prompt,
@@ -17,8 +18,7 @@ from app.services.Image_generator import (
     save_image_from_url,
 )
 
-import asyncio
-
+from app.infrastructure.cosmos_db_client import CosmosDBClient
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ class PipelineService:
 
     def __init__(self):
         self.scraped_results: List[Dict[str, Any]] = []
+        self.summarized_results: List[Dict[str, Any]] = []
 
     async def run(self) -> None:
         logger.info("Pipeline started")
@@ -34,10 +35,10 @@ class PipelineService:
         await self._scrape_stage()
         await self._vector_stage()
         await self._summarization_stage()
+        await self._image_stage()
+        await self._cosmos_stage()
 
         logger.info("Pipeline finished")
-
-
 
     async def _scrape_stage(self):
         logger.info("Starting scraping stage")
@@ -72,7 +73,6 @@ class PipelineService:
                 f"Pipeline aborted: only {len(successful)} successful articles scraped."
             )
 
-        # Keep only first 10
         self.scraped_results = successful[:10]
 
         logger.info("Scraping completed. 10 successful articles locked.")
@@ -93,63 +93,44 @@ class PipelineService:
     async def _summarization_stage(self):
         logger.info("Starting summarization stage")
 
-        qdrant_client = QdrantClient(url=settings.qdrant_url or "http://localhost:6333")
-        collection_name = settings.qdrant_collection
-
-        all_articles = []
-        next_page = None
-
-        while True:
-            points, next_page = qdrant_client.scroll(
-                collection_name=collection_name,
-                scroll_filter=None,
-                limit=100,
-                with_payload=True,
-                with_vectors=False,
-                offset=next_page,
-            )
-
-            if not points:
-                break
-
-            for point in points:
-                payload = point.payload or {}
-                metadata = payload.get("metadata", {})
-                flat = {**payload, **metadata}
-                all_articles.append(flat)
-
-            if next_page is None:
-                break
+        vector_service = QdrantVectorDBClient()
+        all_articles = await vector_service.fetch_all_articles_payload()
 
         if not all_articles:
             raise RuntimeError("Summarization aborted: no articles found in Qdrant.")
 
         self.summarized_results = summarize_articles(all_articles)
 
-        logger.info("Summarization completed: %s articles processed", len(self.summarized_results))
+        logger.info(
+            "Summarization completed: %s articles processed",
+            len(self.summarized_results),
+        )
 
     async def _image_stage(self):
         logger.info("Starting image generation stage")
 
         if not self.summarized_results:
-            raise RuntimeError("Image stage aborted: no summarized results available.")
+            raise RuntimeError(
+                "Image stage aborted: no summarized results available."
+            )
 
         processed = 0
 
         for article in self.summarized_results:
             try:
                 title = (article.get("title") or "").strip()
-                text = (article.get("text") or "").strip()
 
-                if not title or not text:
+                if not title:
                     article["image_url"] = ""
                     article["local_image_path"] = ""
                     continue
 
                 curated_prompt = to_safe_concept_prompt(title)
 
-                # 🔥 Run blocking image API call in background thread
-                raw = await asyncio.to_thread(call_image_api, curated_prompt)
+                raw = await asyncio.to_thread(
+                    call_image_api,
+                    curated_prompt
+                )
 
                 image_url, is_default = extract_image_url(raw)
 
@@ -160,12 +141,8 @@ class PipelineService:
                         title
                     )
 
-                    if is_default:
-                        article["image_url"] = ""
-                        article["local_image_path"] = saved or ""
-                    else:
-                        article["image_url"] = image_url
-                        article["local_image_path"] = saved or ""
+                    article["image_url"] = "" if is_default else image_url
+                    article["local_image_path"] = saved or ""
                 else:
                     article["image_url"] = ""
                     article["local_image_path"] = ""
@@ -174,11 +151,82 @@ class PipelineService:
 
             except Exception as e:
                 logger.warning(
-                    f"Image generation failed for article {article.get('id')}: {e}"
+                    "Image generation failed for article %s: %s",
+                    article.get("id"),
+                    e
                 )
                 article["image_url"] = ""
                 article["local_image_path"] = ""
 
-        logger.info("Image generation completed for %s articles", processed)
+        logger.info(
+            "Image generation completed for %s articles",
+            processed
+        )
 
+    async def _cosmos_stage(self):
+        logger.info("Starting Cosmos DB stage")
 
+        if not self.summarized_results:
+            raise RuntimeError("Cosmos stage aborted: no summarized results available.")
+
+        cosmos = CosmosDBClient()
+        await cosmos.init()
+
+        try:
+            deleted = await cosmos.reset_container()
+            logger.info("Deleted %s existing articles from Cosmos DB", deleted)
+
+            upserted = 0
+            cosmos_written_items = []
+
+            for article in self.summarized_results:
+                try:
+                    article_id = (
+                        article.get("id")
+                        or article.get("unique_id")
+                        or str(uuid.uuid4())
+                    )
+
+                    cosmos_item = {
+                        "id": str(article_id),
+                        "title": article.get("title", ""),
+                        "url": article.get("url") or article.get("link", ""),
+                        "summary": article.get("summary", ""),
+                        "date": (
+                            article.get("published_at")
+                            or article.get("iso_date")
+                            or ""
+                        ),
+                        "categories": article.get("categories") or ["AI"],
+                        "image_url": article.get("image_url", ""),
+                        "local_image_path": article.get("local_image_path", ""),
+                        "source": article.get("source", "")
+                    }
+
+                    await cosmos.upsert_news(cosmos_item)
+
+                    cosmos_written_items.append(cosmos_item)
+                    upserted += 1
+
+                except Exception as e:
+                    logger.warning(
+                        "Failed to upsert article %s: %s",
+                        article.get("id"),
+                        e
+                    )
+
+            output_dir = "output"
+            os.makedirs(output_dir, exist_ok=True)
+
+            output_path = os.path.join(output_dir, "summarized_articles.json")
+
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(cosmos_written_items, f, indent=2, ensure_ascii=False)
+
+            logger.info(
+                "Cosmos DB stage completed. %s articles inserted and written to JSON.",
+                upserted
+            )
+
+        finally:
+            await cosmos.close()

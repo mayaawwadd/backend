@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from app.services.embedding_service import EmbeddingService
 from app.services.document_mapper import document_to_point
-from app.utils.qdrant_client import QdrantCloudClient, initialize_embedding_client
+from app.infrastructure.qdrant_client import QdrantCloudClient, initialize_embedding_client
 
 logger = logging.getLogger(__name__)
 
@@ -204,3 +204,34 @@ class QdrantVectorDBClient(VectorDBClient):
             logger.info("[QdrantVDB] Vector operations completed successfully.")
         except Exception as e:
             logger.error(f"[QdrantVDB] Vector operations failed: {e}")
+
+    async def fetch_all_articles_payload(self) -> list:
+        """
+        Fetch all stored article payloads from Qdrant.
+        """
+        all_articles = []
+        next_page = None
+
+        while True:
+            points, next_page = self.qdrant_client.client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=None,
+                limit=100,
+                with_payload=True,
+                with_vectors=False,
+                offset=next_page,
+            )
+
+            if not points:
+                break
+
+            for point in points:
+                payload = point.payload or {}
+                metadata = payload.get("metadata", {})
+                flat = {**payload, **metadata}
+                all_articles.append(flat)
+
+            if next_page is None:
+                break
+
+        return all_articles

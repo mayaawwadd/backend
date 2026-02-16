@@ -36,7 +36,7 @@ except Exception:
     sys.modules["azure.keyvault"] = keyvault_mod
     sys.modules["azure.keyvault.secrets"] = secrets_mod
 
-from app.utils.qdrant_client import QdrantCloudClient, QdrantClientError
+from app.infrastructure.qdrant_client import QdrantCloudClient, QdrantClientError
 
 
 @pytest.fixture(autouse=True)
