@@ -5,7 +5,6 @@ import time
 from typing import Dict, Any, List, Optional, Tuple
 
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import ScrollRequest
 
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage

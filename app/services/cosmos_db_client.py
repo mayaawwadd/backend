@@ -1,4 +1,3 @@
-import os
 from azure.cosmos.aio import CosmosClient
 from azure.cosmos import PartitionKey
 

@@ -1,13 +1,11 @@
 import asyncio
 import logging
-import os
 from typing import Any, Dict, List, Optional, Set
 from uuid import NAMESPACE_URL, uuid5
 
 import httpx
 from dotenv import load_dotenv
 
-from app.config import settings
 from app.utils.qdrant_client import QdrantCloudClient
 
 # Ensure dotenv is loaded globally
@@ -30,7 +28,7 @@ SEARCH_TERMS = (
 )
 
 CREDIBLE_SITES = (
-    "site:reuters.com OR site:apnews.com OR site:bbc.com OR site:nytimes.com OR site:washingtonpost.com OR "
+    "site:apnews.com OR site:bbc.coms OR site:washingtonpost.com OR "
     "site:theguardian.com OR site:npr.org OR site:financialtimes.com OR site:bloomberg.com OR site:wsj.com OR "
     "site:cnbc.com OR site:forbes.com OR "
     "site:wired.com OR site:theverge.com OR site:techcrunch.com OR site:venturebeat.com OR "

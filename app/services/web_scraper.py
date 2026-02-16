@@ -1,11 +1,6 @@
-import asyncio
-import hashlib
 import logging
-import os
-from typing import Any, Callable, Dict, List, Optional
-from urllib.parse import urlparse
-from app.utils.scraper_utils import URLTools
-from app.services.google_news_fetcher import GoogleNewsFetcher
+from typing import Any, Callable, Dict, List, Optional, Set, Awaitable
+
 from app.services.article_scraper import PlaywrightArticleScraper, ScraperConfig
 from app.services.vector_service import VectorDBClient
 
@@ -17,7 +12,7 @@ class WebScraper:
     def __init__(
         self,
         config: ScraperConfig,
-        url_fetcher: Callable[[], List[str]],
+        url_fetcher: Callable[[Set[str]], Awaitable[List[Dict[str, Any]]]],
         vdb_client: Optional[VectorDBClient] = None,
     ) -> None:
         self.config = config
@@ -30,41 +25,47 @@ class WebScraper:
         )
         self.vdb = vdb_client
 
-
-
     async def scrape_all(self) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
-        seen_urls = set()
-        fetcher = GoogleNewsFetcher()
+        seen_urls: Set[str] = set()
         target_success_count = 10
         success_count = 0
 
-        while success_count < target_success_count:
-            request_num = self.config.max_articles if (self.config.max_articles and self.config.max_articles > 0) else 10
-            records = await fetcher.fetch_articles(num=request_num, exclude_urls=seen_urls)
-            urls = [r["link"] for r in records if isinstance(r, dict) and r.get("link")]
+        max_fetch_rounds = 5  # 🔥 guardrail to prevent infinite credit burn
+        fetch_round = 0
 
-            # Build a mapping of normalized URL -> Google News metadata for merging
-            def _norm(u: str) -> str:
-                return (u or "").strip().rstrip("/")
+        while success_count < target_success_count and fetch_round < max_fetch_rounds:
 
-            gn_by_url = { _norm(r.get("link", "")): r for r in records if isinstance(r, dict) and r.get("link") }
+            fetch_round += 1
 
-            if not urls:
+            # 🔥 IMPORTANT: pass seen URLs to prevent duplicate SearchAPI results
+            records = await self.fetch_urls(seen_urls)
+
+            if not records:
+                logger.warning("No records returned from fetcher.")
                 break
 
-            for url in urls:
-                if url in seen_urls:
+            for record in records:
+                url = record.get("link") if isinstance(record, dict) else record
+
+                if not url or url in seen_urls:
                     continue
+
                 seen_urls.add(url)
+
                 if success_count >= target_success_count:
                     break
-                res = await self.scraper.scrape(url)
+
+                try:
+                    res = await self.scraper.scrape(url)
+                except Exception as e:
+                    logger.warning("Scrape failed for %s: %s", url, e)
+                    continue
+
                 res_dict = res.to_dict()
 
-                gn_meta = gn_by_url.get(_norm(url))
-                if gn_meta and isinstance(gn_meta, dict):
-                    # Primary mappings
+                # 🔥 Merge Google News metadata if available
+                if isinstance(record, dict):
                     field_map = {
                         "unique_id": "gn_id",
                         "title": "gn_title",
@@ -72,23 +73,31 @@ class WebScraper:
                         "position": "gn_position",
                         "source": "source",
                     }
-                    for src_key, dst_key in field_map.items():
-                        if src_key in gn_meta and (dst_key not in res_dict or res_dict.get(dst_key) in (None, "")):
-                            res_dict[dst_key] = gn_meta.get(src_key)
 
-                    for k, v in gn_meta.items():
-                        if k not in field_map:
-                            gn_key = f"gn_{k}" if not k.startswith("gn_") else k
-                            if gn_key not in res_dict or res_dict.get(gn_key) is None:
-                                res_dict[gn_key] = v
+                    for src_key, dst_key in field_map.items():
+                        if src_key in record and (
+                            dst_key not in res_dict
+                            or res_dict.get(dst_key) in (None, "")
+                        ):
+                            res_dict[dst_key] = record.get(src_key)
 
                 results.append(res_dict)
+
                 if not res.skipped and res.text and res.text.strip():
                     success_count += 1
 
-            if success_count >= target_success_count:
-                break
+            logger.info(
+                "Fetch round %s complete. Success count: %s/%s",
+                fetch_round,
+                success_count,
+                target_success_count,
+            )
+
+        if fetch_round >= max_fetch_rounds and success_count < target_success_count:
+            logger.warning(
+                "Stopped due to max_fetch_rounds limit. Success: %s/%s",
+                success_count,
+                target_success_count,
+            )
 
         return results
-
-

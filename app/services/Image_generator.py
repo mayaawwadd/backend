@@ -5,12 +5,10 @@ import os
 import re
 import random
 import json
-from typing import Any, List, Optional
+from typing import Optional
 from dotenv import load_dotenv
-import pathlib
 import time
 import shutil
-import mimetypes
 import glob
 from urllib.parse import urlparse
 from app.services.document_manager import DocumentManager

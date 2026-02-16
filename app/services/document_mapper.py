@@ -1,6 +1,4 @@
-"""Document payload and filter mapping helpers."""
-
-from typing import Dict, Any, Optional, TypedDict, List, Sequence
+from typing import Dict, Any, Optional, TypedDict, List
 from qdrant_client.models import Filter, FieldCondition, MatchValue, PointStruct, Condition
 
 METADATA_KEY_PREFIX = "metadata."

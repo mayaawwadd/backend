@@ -1,5 +1,3 @@
-"""Embedding service for generating vector embeddings using Azure OpenAI."""
-
 import logging
 from typing import List
 from openai import AzureOpenAI

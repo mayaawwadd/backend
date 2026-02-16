@@ -1,7 +1,7 @@
 import re
 import logging
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 from urllib.parse import urlparse
 
 from playwright.async_api import async_playwright, TimeoutError as PWTimeout

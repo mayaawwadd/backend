@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-from typing import List, Dict
+from typing import List
 
 import httpx
 from app.config import settings
@@ -12,7 +12,7 @@ from app.services.vector_service import QdrantVectorDBClient
 from app.services.cosmos_db_client import CosmosDBClient
 from app.services.summarization import summarize_articles
 import glob
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from app.services.document_manager import DocumentManager
 from app.services.Image_generator import process_scraper_results
 import json
@@ -56,7 +56,15 @@ async def main() -> None:
         )
 
         num_to_fetch = config.max_articles if (config.max_articles and config.max_articles > 0) else 10
-        url_fetcher = lambda: asyncio.run(fetch_urls_via_google_news(num=num_to_fetch))
+
+        async def url_fetcher(exclude_urls):
+            fetcher = GoogleNewsFetcher()
+            return await fetcher.fetch_articles(
+                num=num_to_fetch,
+                exclude_urls=exclude_urls,
+            )
+
+
         vdb_client = QdrantVectorDBClient() if USE_VECTOR_DB else None
         files_dir = os.path.join(os.path.dirname(__file__), "files")
         dm = DocumentManager(base_dir=files_dir)
@@ -142,7 +150,11 @@ async def main() -> None:
                 
                 for point in points:
                     if point.payload:
-                        all_articles.append(point.payload)
+                        payload = point.payload
+                        metadata = payload.get("metadata", {})
+                        flat = {**payload, **metadata}
+                        all_articles.append(flat)
+
                 
                 if next_page is None:
                     break

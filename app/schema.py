@@ -2,7 +2,7 @@
 Pydantic models for request/response validation.
 """
 
-from typing import Any, Generic, TypeVar, Optional, List
+from typing import Generic, TypeVar, Optional
 from pydantic import BaseModel, ConfigDict
 from fastapi import HTTPException, status
 

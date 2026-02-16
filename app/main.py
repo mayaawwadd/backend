@@ -1,14 +1,9 @@
 from contextlib import asynccontextmanager
 from app.services.cosmos_db_client import CosmosDBClient
 import logging
-import importlib
-import pkgutil
-from typing import TYPE_CHECKING
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.schema import RaisedException
@@ -16,9 +11,6 @@ from app.schema import RaisedException
 from app.utils.fast_api import  include_applications
 
 from app.utils.error_handler import raised_exception_handler
-
-if TYPE_CHECKING:
-    from fastapi import APIRouter
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,

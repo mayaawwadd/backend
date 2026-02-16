@@ -2,7 +2,6 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from app.schema import RaisedException, ErrorResponse
-from fastapi.exceptions import RequestValidationError
 import logging
 import asyncio
 

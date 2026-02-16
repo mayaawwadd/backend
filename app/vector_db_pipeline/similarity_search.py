@@ -1,5 +1,4 @@
 from app.utils.qdrant_client import QdrantCloudClient
-from uuid import uuid4
 
 
 qdrant = QdrantCloudClient.from_secrets_or_env()

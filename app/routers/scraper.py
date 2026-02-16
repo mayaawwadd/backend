@@ -3,14 +3,11 @@ Scraper API router for orchestrating the complete pipeline.
 Handles: fetch -> scrape -> embed -> deduplicate -> store
 """
 import logging
-import asyncio
 from typing import List, Dict, Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.config import Settings
-from app.run import fetch_urls_via_google_news
 from app.services.web_scraper import WebScraper
 from app.services.article_scraper import ScraperConfig
 from app.services.vector_service import QdrantVectorDBClient
@@ -72,7 +69,6 @@ def create_vdb_client(use_vector_db: bool) -> Any:
         return None
     
     try:
-        settings = Settings()
         client = QdrantVectorDBClient(
             qdrant_url="http://localhost:6333",
             collection_name="articles",
@@ -124,7 +120,6 @@ async def scrape_articles(request: ScrapeRequest) -> ScrapeResponse:
             logger.info(f"[SCRAPE] Fetched {len(urls)} URLs from Google News")
             return urls
         
-        loop = asyncio.get_event_loop()
         urls = await fetch_urls()
         
         if not urls:

@@ -1,6 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch
-from app.utils.qdrant_client import QdrantCloudClient
+from unittest.mock import patch
 from uuid import uuid4
 import random
 
