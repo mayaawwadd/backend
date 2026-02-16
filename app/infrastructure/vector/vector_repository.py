@@ -2,9 +2,9 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from app.services.embedding_service import EmbeddingService
-from app.services.document_mapper import document_to_point
-from app.infrastructure.qdrant_client import QdrantCloudClient, initialize_embedding_client
+from app.infrastructure.vector.embedding_client import EmbeddingClient
+from app.infrastructure.vector.document_mapper import document_to_point
+from app.infrastructure.vector.qdrant_client import QdrantCloudClient, initialize_embedding_client
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class VectorDBClient:
         raise NotImplementedError
 
 
-class QdrantVectorDBClient(VectorDBClient):
+class QdrantVectorRepository(VectorDBClient):
     async def ingest_scraped_results(self, results: List[Dict[str, Any]]):
         import hashlib
         from urllib.parse import urlparse
@@ -120,8 +120,8 @@ class QdrantVectorDBClient(VectorDBClient):
         self.openai_client, self.azure_embed_model = initialize_embedding_client(use_azure, self.embedding_model)
 
     async def _generate_embedding(self, text: str) -> List[float]:
-        embedding_service = EmbeddingService()
-        return await embedding_service.generate_embedding_async(text)
+        embedding_client = EmbeddingClient()
+        return await embedding_client.generate_embedding_async(text)
 
     async def test_connection(self):
         try:

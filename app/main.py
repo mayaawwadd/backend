@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from app.infrastructure.cosmos_db_client import CosmosDBClient
+from app.infrastructure.storage.cosmos_db_client import CosmosDBClient
 import logging
 
 from fastapi import FastAPI

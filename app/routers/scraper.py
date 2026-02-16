@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.services.web_scraper import WebScraper
 from app.services.article_scraper import ScraperConfig
-from app.services.vector_service import QdrantVectorDBClient
+from app.infrastructure.vector.vector_repository import QdrantVectorRepository
 from app.services.google_news_fetcher import GoogleNewsFetcher
 
 logger = logging.getLogger(__name__)
