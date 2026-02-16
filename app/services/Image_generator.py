@@ -121,7 +121,6 @@ def call_image_api(prompt: str) -> dict:
             _write_debug("Failed to parse response JSON")
             return {"error": {"message": "invalid_json"}}
 
-        # 🔴 Log rate limit or other API errors
         if response.status_code != 200:
             _write_debug(
                 f"Image API error | status={response.status_code} | body={data}"
