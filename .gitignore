@@ -177,3 +177,5 @@ app/files/images/responses/
 .vscode/
 
 qdrant_storage/*
+
+config.ini 

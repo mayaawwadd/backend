@@ -32,6 +32,15 @@ class Settings:
     def azure_openai_embed_model(self) -> str:
         return config["azure"].get("openai_embed_model", "")
 
+    # 🔥 NORA Image API (NEW – nothing else changed)
+    @property
+    def nora_api_url(self) -> str:
+        return config["azure"].get("nora_api_url", "")
+
+    @property
+    def nora_api_key(self) -> str:
+        return config["azure"].get("nora_api_key", "")
+
     # Cosmos SQL
     @property
     def cosmos_sql_endpoint(self) -> str:

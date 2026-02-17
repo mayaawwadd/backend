@@ -1,5 +1,4 @@
 import requests
-import os
 import re
 import random
 import time
@@ -7,6 +6,9 @@ import shutil
 from pathlib import Path
 from typing import Optional, Tuple
 from urllib.parse import urlparse
+
+from app.config import settings 
+
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 OUTPUT_DIR = BASE_DIR / "output"
@@ -22,7 +24,6 @@ DEBUG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = DEBUG_DIR / f"image_debug_{int(time.time())}.log"
 
 
-
 def _write_debug(msg: str) -> None:
     try:
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -31,16 +32,18 @@ def _write_debug(msg: str) -> None:
     except Exception:
         pass
 
-IMAGE_API_URL = os.getenv("NORA_API_URL") or os.getenv("AZURE_OPENAI_ENDPOINT")
-IMAGE_API_KEY = os.getenv("NORA_API_KEY") or os.getenv("AZURE_OPENAI_KEY")
+
+IMAGE_API_URL = settings.nora_api_url
+IMAGE_API_KEY = settings.nora_api_key
+
+if not IMAGE_API_URL:
+    raise RuntimeError("NORA_API_URL not configured in config.ini")
+
+if not IMAGE_API_KEY:
+    raise RuntimeError("NORA_API_KEY not configured in config.ini")
 
 
 def build_safe_editorial_prompt(article: dict) -> str:
-    """
-    Converts article content into a neutral, safe conceptual prompt.
-    Prevents moderation failures from political names, brands, etc.
-    """
-
     summary = (article.get("summary") or "").strip().lower()
     title = (article.get("title") or "").strip().lower()
 
@@ -60,22 +63,16 @@ def build_safe_editorial_prompt(article: dict) -> str:
 
     if any(word in text for word in political_keywords):
         theme = "AI-generated misinformation and political communication risks"
-
     elif any(word in text for word in corporate_keywords):
         theme = "The societal impact of artificial intelligence on media and corporations"
-
     elif "health" in text:
         theme = "AI systems influencing public health information"
-
     elif "research" in text or "science" in text:
         theme = "AI accelerating scientific research and innovation"
-
     elif "funding" in text or "startup" in text:
         theme = "Investment trends in artificial intelligence infrastructure"
-
     elif "agriculture" in text:
         theme = "Artificial intelligence transforming global agriculture"
-
     else:
         theme = "The growing influence of artificial intelligence on modern society"
 
@@ -86,19 +83,19 @@ def build_safe_editorial_prompt(article: dict) -> str:
     )
 
 
-# Backwards compatibility (in case anything still calls it)
 def to_safe_concept_prompt(user_prompt: str) -> str:
     return (
         "Create a modern editorial illustration about artificial intelligence "
         "and technology. No logos. No brand names. No text overlays."
     )
 
+
 def call_image_api(prompt: str) -> dict:
     url = f"{IMAGE_API_URL}/openai/deployments/dall-e-3/images/generations?api-version=2024-02-01"
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {IMAGE_API_KEY}"
+        "api-key": IMAGE_API_KEY  
     }
 
     body = {
@@ -133,14 +130,7 @@ def call_image_api(prompt: str) -> dict:
         return {"error": {"message": "request_failed"}}
 
 
-
 def extract_image_url(response_json: dict) -> Tuple[Optional[str], bool]:
-    """
-    Returns (url_or_path, is_default).
-    Guarantees a default image if generation fails.
-    """
-
-    # If API error → return default image
     if response_json.get("error"):
         default_images = list(DEFAULTS_DIR.glob("*"))
         if default_images:
@@ -156,7 +146,6 @@ def extract_image_url(response_json: dict) -> Tuple[Optional[str], bool]:
     except Exception:
         pass
 
-    # If no URL returned → fallback
     default_images = list(DEFAULTS_DIR.glob("*"))
     if default_images:
         chosen = random.choice(default_images)
@@ -200,7 +189,6 @@ def save_image_from_url(url: str, title: Optional[str] = None) -> Optional[str]:
         if dest.exists():
             dest = RESPONSES_DIR / f"{dest.stem}_{int(time.time())}{ext}"
 
-        # HTTP download
         if parsed.scheme in ("http", "https"):
             resp = requests.get(url, stream=True, timeout=30)
             resp.raise_for_status()
@@ -210,7 +198,6 @@ def save_image_from_url(url: str, title: Optional[str] = None) -> Optional[str]:
                         f.write(chunk)
             return str(dest.resolve())
 
-        # Local file copy (default fallback case)
         if parsed.scheme == "" and Path(url).exists():
             shutil.copyfile(url, dest)
             return str(dest.resolve())
