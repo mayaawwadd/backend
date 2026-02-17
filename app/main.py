@@ -4,6 +4,8 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from app.config import settings
 from app.schema import RaisedException
@@ -77,13 +79,21 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # ... exception handlers moved to utils/error_handler.py ...
     app.add_exception_handler(RaisedException, raised_exception_handler)
-
-    # ...routes moved to routers/health.py...
 
     logger.info(f"Loading routers from {settings.api_base}...")
     include_applications(app, api_base=settings.api_base, router_package="app.routers")
+    
+    # Serve generated images
+    BASE_DIR = Path(__file__).resolve().parents[1]
+    IMAGES_DIR = BASE_DIR / "output" / "images"
+
+    app.mount(
+        "/images",
+        StaticFiles(directory=IMAGES_DIR),
+        name="images",
+    )
+
 
     logger.info(f"Application {settings.app_name} initialized successfully")
     return app

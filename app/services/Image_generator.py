@@ -200,7 +200,8 @@ def save_image_from_url(url: str, title: Optional[str] = None) -> Optional[str]:
                 for chunk in resp.iter_content(8192):
                     if chunk:
                         f.write(chunk)
-            return str(dest.resolve())
+            relative_path = dest.relative_to(IMAGES_DIR)
+            return f"/images/{relative_path}"
 
         if parsed.scheme == "" and Path(url).exists():
             shutil.copyfile(url, dest)
