@@ -28,13 +28,17 @@ SEARCH_TERMS = (
 )
 
 CREDIBLE_SITES = (
-    "site:apnews.com OR site:bbc.coms OR site:washingtonpost.com OR "
-    "site:theguardian.com OR site:npr.org OR site:financialtimes.com OR site:bloomberg.com OR site:wsj.com OR "
-    "site:cnbc.com OR site:forbes.com OR "
-    "site:wired.com OR site:theverge.com OR site:techcrunch.com OR site:venturebeat.com OR "
-    "site:technologyreview.com OR site:nature.com OR site:sciencedaily.com OR site:scientificamerican.com OR "
-    "site:spectrum.ieee.org OR "
-    "site:businessinsider.com OR site:fortune.com"
+    "site:openai.com/blog OR "
+    "site:deepmind.google/blog OR site:ai.googleblog.com OR "
+    "site:microsoft.com/research OR site:ai.meta.com OR "
+    "site:stability.ai OR site:stability.ai/blog OR "
+    "site:x.ai/blog OR "
+    "site:huggingface.co/blog OR site:github.blog/news-insights OR "
+    "site:technologyreview.com OR "
+    "site:wired.com OR site:theverge.com OR site:venturebeat.com OR "
+    "site:nature.com OR site:sciencedaily.com OR site:scientificamerican.com OR "
+    "site:spectrum.ieee.org OR site:techcrunch.com OR "
+    "site:arxiv.org OR site:paperswithcode.com OR site:ieee.org OR site:acm.org"
 )
 
 

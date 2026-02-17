@@ -13,14 +13,14 @@ async def run_scrape_stage() -> List[Dict[str, Any]]:
 
     config = ScraperConfig(
         headless=False,
-        max_articles=10
+        max_articles=15
     )
 
     fetcher = GoogleNewsFetcher()
 
     async def url_fetcher(exclude_urls):
         return await fetcher.fetch_articles(
-            num=10,
+            num=15,
             exclude_urls=exclude_urls
         )
 
@@ -31,6 +31,7 @@ async def run_scrape_stage() -> List[Dict[str, Any]]:
 
     results = await scraper.scrape_all()
 
+    # Only keep successful scrapes
     successful = [
         r for r in results
         if not r.get("skipped") and r.get("text")
@@ -41,6 +42,11 @@ async def run_scrape_stage() -> List[Dict[str, Any]]:
             f"Pipeline aborted: only {len(successful)} successful articles scraped."
         )
 
-    logger.info("Scraping completed. 10 successful articles locked.")
+    # Deduplicate and select 10 most valuable using LLM
+    from app.infrastructure.llm.deduplication_llm import DeduplicationLLM
+    deduper = DeduplicationLLM()
+    selected = await deduper.select_unique_news(successful, k=10)
 
-    return successful[:10]
+    logger.info("Scraping completed. 10 unique, valuable articles selected.")
+
+    return selected

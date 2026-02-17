@@ -49,7 +49,7 @@ async def run_image_stage(articles: List[Dict[str, Any]]) -> List[Dict[str, Any]
 
             processed += 1
 
-            await asyncio.sleep(20)  # 3 per minute rate limit
+            await asyncio.sleep(25)  # 3 per minute rate limit
 
         except Exception as e:
             logger.warning(
