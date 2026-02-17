@@ -1,8 +1,8 @@
 import logging
 from typing import List, Dict, Any
 
-from app.infrastructure.vector.vector_repository import QdrantVectorRepository
-from app.infrastructure.llm.article_summarizer import ArticleSummarizer
+from app.services.vector_service import QdrantVectorDBClient
+from app.services.summarization import summarize_articles
 
 logger = logging.getLogger(__name__)
 
@@ -10,32 +10,17 @@ logger = logging.getLogger(__name__)
 async def run_summarization_stage() -> List[Dict[str, Any]]:
     logger.info("Starting summarization stage")
 
-    vector_repo = QdrantVectorRepository()
-    summarizer = ArticleSummarizer()
-
-    all_articles = await vector_repo.fetch_all_articles_payload()
+    vector_service = QdrantVectorDBClient()
+    all_articles = await vector_service.fetch_all_articles_payload()
 
     if not all_articles:
         raise RuntimeError("Summarization aborted: no articles found in Qdrant.")
 
-    summarized_results: List[Dict[str, Any]] = []
-
-    for article in all_articles:
-        try:
-            enriched_article = await summarizer.summarize_article(article)
-            if enriched_article:
-                summarized_results.append(enriched_article)
-
-        except Exception as e:
-            logger.warning(
-                "Failed to summarize article %s: %s",
-                article.get("id"),
-                e,
-            )
+    summarized = summarize_articles(all_articles)
 
     logger.info(
         "Summarization completed: %s articles processed",
-        len(summarized_results),
+        len(summarized),
     )
 
-    return summarized_results
+    return summarized

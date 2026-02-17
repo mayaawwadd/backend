@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Any
 
-from app.infrastructure.vector.vector_repository import QdrantVectorRepository
+from app.services.vector_service import QdrantVectorDBClient
 
 logger = logging.getLogger(__name__)
 
@@ -12,16 +12,9 @@ async def run_vector_stage(scraped_results: List[Dict[str, Any]]) -> None:
     if not scraped_results:
         raise RuntimeError("Vector stage aborted: no scraped results available.")
 
-    vector_repo = QdrantVectorRepository()
+    vdb_client = QdrantVectorDBClient()
 
-    try:
-        await vector_repo.ingest_scraped_results(scraped_results)
+    await vdb_client.test_connection()
+    await vdb_client.ingest_scraped_results(scraped_results)
 
-        logger.info(
-            "Vector ingestion completed successfully. %s documents stored.",
-            len(scraped_results),
-        )
-
-    except Exception as e:
-        logger.error("Vector ingestion failed: %s", e)
-        raise
+    logger.info("Vector ingestion completed successfully.")

@@ -6,7 +6,7 @@ import asyncio
 
 logger = logging.getLogger(__name__)
 
-class EmbeddingClient:
+class EmbeddingService:
     def __init__(self):
         self.client = AzureOpenAI(
             api_key=settings.azure_openai_key,

@@ -6,7 +6,7 @@ from uuid import NAMESPACE_URL, uuid5
 import httpx
 from dotenv import load_dotenv
 
-from app.infrastructure.vector.qdrant_client import QdrantCloudClient
+from app.infrastructure.qdrant_client import QdrantCloudClient
 
 # Ensure dotenv is loaded globally
 # Already present in this file, no changes needed.

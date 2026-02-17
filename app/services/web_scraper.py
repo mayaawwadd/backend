@@ -1,41 +1,44 @@
 import logging
-from typing import Any, Callable, Dict, List, Set, Awaitable
+from typing import Any, Callable, Dict, List, Optional, Set, Awaitable
 
 from app.services.article_scraper import PlaywrightArticleScraper, ScraperConfig
+from app.services.vector_service import VectorDBClient
 
 logger = logging.getLogger(__name__)
 
 
 class WebScraper:
+
     def __init__(
         self,
         config: ScraperConfig,
         url_fetcher: Callable[[Set[str]], Awaitable[List[Dict[str, Any]]]],
+        vdb_client: Optional[VectorDBClient] = None,
     ) -> None:
         self.config = config
         self.fetch_urls = url_fetcher
-
         self.scraper = PlaywrightArticleScraper(
             headless=config.headless,
             selectors=config.selectors,
             viewport=config.viewport,
             user_agent=config.user_agent,
         )
+        self.vdb = vdb_client
 
     async def scrape_all(self) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
         seen_urls: Set[str] = set()
-
         target_success_count = 10
         success_count = 0
 
-        max_fetch_rounds = 5  # guardrail to prevent infinite loops
+        max_fetch_rounds = 5  # 🔥 guardrail to prevent infinite credit burn
         fetch_round = 0
 
         while success_count < target_success_count and fetch_round < max_fetch_rounds:
+
             fetch_round += 1
 
-            # Prevent duplicate fetches
+            # 🔥 IMPORTANT: pass seen URLs to prevent duplicate SearchAPI results
             records = await self.fetch_urls(seen_urls)
 
             if not records:
@@ -61,7 +64,7 @@ class WebScraper:
 
                 res_dict = res.to_dict()
 
-                # Merge Google News metadata if available
+                # 🔥 Merge Google News metadata if available
                 if isinstance(record, dict):
                     field_map = {
                         "unique_id": "gn_id",
