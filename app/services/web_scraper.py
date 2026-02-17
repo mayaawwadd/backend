@@ -28,17 +28,16 @@ class WebScraper:
     async def scrape_all(self) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
         seen_urls: Set[str] = set()
-        target_success_count = 10
+        target_success_count = 15
         success_count = 0
 
-        max_fetch_rounds = 5  # 🔥 guardrail to prevent infinite credit burn
+        max_fetch_rounds = 5  
         fetch_round = 0
 
         while success_count < target_success_count and fetch_round < max_fetch_rounds:
 
             fetch_round += 1
 
-            # 🔥 IMPORTANT: pass seen URLs to prevent duplicate SearchAPI results
             records = await self.fetch_urls(seen_urls)
 
             if not records:
@@ -64,7 +63,6 @@ class WebScraper:
 
                 res_dict = res.to_dict()
 
-                # 🔥 Merge Google News metadata if available
                 if isinstance(record, dict):
                     field_map = {
                         "unique_id": "gn_id",
