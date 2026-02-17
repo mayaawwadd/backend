@@ -77,10 +77,14 @@ def build_safe_editorial_prompt(article: dict) -> str:
         theme = "The growing influence of artificial intelligence on modern society"
 
     return (
-        f"Create a clean, magazine-style conceptual editorial illustration about {theme}. "
-        "No logos. No brand names. No public figures. No text overlays. "
-        "Modern digital art style. High quality. Neutral and professional."
+        f"Minimalist professional editorial photograph representing {theme}. "
+        "Clean composition. Neutral background. Soft natural lighting. "
+        "Single clear subject. Modern business aesthetic. "
+        "Minimal details. No clutter. No text. No logos. "
+        "High-quality professional photography."
     )
+
+
 
 
 def to_safe_concept_prompt(user_prompt: str) -> str:
